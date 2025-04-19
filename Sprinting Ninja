@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Company - Flappy Bird Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <div id="bird"></div>
+    <div id="score">Score: 0</div>
+    <div id="game-over">Game Over<br><button onclick="location.reload()">Restart</button></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+  background: #70c5ce;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #70c5ce;
+  overflow: hidden;
+}
+
+#bird {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: yellow;
+  border-radius: 50%;
+  top: 200px;
+  left: 100px;
+}
+
+.pipe {
+  position: absolute;
+  width: 60px;
+  background: green;
+}
+
+.pipe.top {
+  top: 0;
+}
+
+.pipe.bottom {
+  bottom: 0;
+}
+
+#score {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 24px;
+  color: #fff;
+}
+
+#game-over {
+  display: none;
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  text-align: center;
+  color: white;
+}gameOverDisplay.style.displaypipe.toppipe.top.offsetHeight60140pipe.passedscoreDisplay.innerText100pipe.bottom.style.leftpipe.top.style.left40bird.style.toppipeBottom.style.leftpipeBottom.style.heightcontainer.clientWidthpipeTop.style.leftpipeTop.style.heightconst bird = document.getElementById('bird');
+const container = document.getElementById('game-container');
+const scoreDisplay = document.getElementById('score');
+const gameOverDisplay = document.getElementById('game-over');
+
+let birdY = 200;
+let gravity = 2;
+let velocity = 0;
+let isGameOver = false;
+let score = 0;
+
+function flap() {
+  if (!isGameOver) {
+    velocity = -10;
+  }
+}
+
+document.addEventListener('keydown', flap);
+document.addEventListener('click', flap);
+
+function createPipe() {
+  const pipeGap = 150;
+  const minPipeHeight = 50;
+  const maxPipeHeight = container.clientHeight - pipeGap - 200;
+  const pipeTopHeight = Math.floor(Math.random() * maxPipeHeight) + minPipeHeight;
+  const pipeBottomHeight = container.clientHeight - pipeTopHeight - pipeGap;
+
+  const pipeTop = document.createElement('div');
+  pipeTop.classList.add('pipe', 'top');
+  pipeTop.style.height = pipeTopHeight + 'px';
+  pipeTop.style.left = container.clientWidth + 'px';
+
+  const pipeBottom = document.createElement('div');
+  pipeBottom.classList.add('pipe', 'bottom');
+  pipeBottom.style.height = pipeBottomHeight + 'px';
+  pipeBottom.style.left = container.clientWidth + 'px';
+
+  container.appendChild(pipeTop);
+  container.appendChild(pipeBottom);
+
+  const pipe = { top: pipeTop, bottom: pipeBottom, passed: false };
+
+  return pipe;
+}
+
+const pipes = [];
+setInterval(() => {
+  if (!isGameOver) {
+    pipes.push(createPipe());
+  }
+}, 2000);
+
+function updateGame() {
+  if (isGameOver) return;
+
+  velocity += gravity;
+  birdY += velocity;
+  bird.style.top = birdY + 'px';
+
+  if (birdY >= container.clientHeight - 40 || birdY <= 0) {
+    endGame();
+  }
+
+  pipes.forEach((pipe, index) => {
+    const pipeLeft = parseInt(pipe.top.style.left) - 4;
+    pipe.top.style.left = pipeLeft + 'px';
+    pipe.bottom.style.left = pipeLeft + 'px';
+
+    if (pipeLeft < 100 && !pipe.passed) {
+      score++;
+      scoreDisplay.innerText = 'Score: ' + score;
+      pipe.passed = true;
+    }
+
+    if (
+      pipeLeft < 140 && pipeLeft + 60 > 100 &&
+      (birdY < pipe.top.offsetHeight || birdY > container.clientHeight - pipe.bottom.offsetHeight)
+    ) {
+      endGame();
+    }
+
+    if (pipeLeft < -60) {
+      container.removeChild(pipe.top);
+      container.removeChild(pipe.bottom);
+      pipes.splice(index, 1);
+    }
+  });
+
+  requestAnimationFrame(updateGame);
+}
+
+function endGame() {
+  isGameOver = true;
+  gameOverDisplay.style.display = 'block';
+}
+
+updateGame();container.clientHeight

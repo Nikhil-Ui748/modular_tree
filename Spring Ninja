@@ -1,0 +1,165 @@
+import pygame
+import random
+import sys
+
+# Initialize Pygame
+pygame.init()
+
+# Screen setup
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Ninja Sprint")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+
+# Game variables
+clock = pygame.time.Clock()
+FPS = 60
+GRAVITY = 1
+SCROLL_SPEED = 5
+score = 0
+font = pygame.font.SysFont("Arial", 30)
+
+# Ninja (player)
+class Ninja:
+    def __init__(self):
+        self.width = 50
+        self.height = 80
+        self.x = 100
+        self.y = SCREEN_HEIGHT - self.height - 20
+        self.vel_y = 0
+        self.jumping = False
+        self.sliding = False
+        self.slide_time = 0
+
+    def update(self):
+        # Gravity
+        self.vel_y += GRAVITY
+        self.y += self.vel_y
+
+        # Ground collision
+        if self.y > SCREEN_HEIGHT - self.height - 20:
+            self.y = SCREEN_HEIGHT - self.height - 20
+            self.vel_y = 0
+            self.jumping = False
+
+        # Slide timer
+        if self.sliding:
+            self.slide_time += 1
+            if self.slide_time > 30:  # Slide for 0.5 seconds
+                self.sliding = False
+                self.slide_time = 0
+                self.height = 80  # Reset height
+
+    def jump(self):
+        if not self.jumping and not self.sliding:
+            self.vel_y = -20
+            self.jumping = True
+
+    def slide(self):
+        if not self.jumping and not self.sliding:
+            self.sliding = True
+            self.height = 40  # Shrink height to slide
+
+    def draw(self):
+        color = GREEN if not self.sliding else RED
+        pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height))
+
+# Obstacles
+class Obstacle:
+    def __init__(self):
+        self.width = 30
+        self.type = random.choice(["spike", "arrow"])
+        if self.type == "spike":
+            self.height = 50
+            self.y = SCREEN_HEIGHT - self.height - 20
+        else:  # Arrow (needs sliding)
+            self.height = 20
+            self.y = SCREEN_HEIGHT - self.height - 10
+        self.x = SCREEN_WIDTH
+        self.passed = False
+
+    def update(self):
+        self.x -= SCROLL_SPEED
+
+    def draw(self):
+        color = BLACK
+        pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height))
+
+    def collide(self, ninja):
+        ninja_mask = pygame.Rect(ninja.x, ninja.y, ninja.width, ninja.height)
+        obstacle_mask = pygame.Rect(self.x, self.y, self.width, self.height)
+        return ninja_mask.colliderect(obstacle_mask)
+
+# Game loop
+def game():
+    global score
+
+    ninja = Ninja()
+    obstacles = []
+    obstacle_timer = 0
+    running = True
+
+    while running:
+        clock.tick(FPS)
+
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    ninja.jump()
+                if event.key == pygame.K_DOWN:
+                    ninja.slide()
+
+        # Spawn obstacles
+        obstacle_timer += 1
+        if obstacle_timer > 90:  # Every 1.5 seconds
+            obstacles.append(Obstacle())
+            obstacle_timer = 0
+
+        # Update
+        ninja.update()
+        for obstacle in obstacles:
+            obstacle.update()
+
+            # Collision
+            if obstacle.collide(ninja):
+                running = False
+
+            # Score
+            if obstacle.x + obstacle.width < ninja.x and not obstacle.passed:
+                obstacle.passed = True
+                score += 1
+
+        # Remove off-screen obstacles
+        obstacles = [obstacle for obstacle in obstacles if obstacle.x > -obstacle.width]
+
+        # Draw
+        screen.fill(WHITE)
+        ninja.draw()
+        for obstacle in obstacles:
+            obstacle.draw()
+
+        # Score
+        score_text = font.render(f"Score: {score}", True, BLACK)
+        screen.blit(score_text, (10, 10))
+
+        pygame.display.update()
+
+    # Game over
+    game_over_text = font.render(f"Game Over! Score: {score}", True, BLACK)
+    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2))
+    pygame.display.update()
+    pygame.time.delay(2000)  # Wait 2 seconds
+
+# Run the game
+game()
+pygame.quit()
+sys.exit()
